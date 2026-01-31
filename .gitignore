@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Data files (don't upload user data)
+data/
+*.db
+*.sqlite
+*.xlsx
+!IncentiveWorking_Krishiv.xlsx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.claude/
