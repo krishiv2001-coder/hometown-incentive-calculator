@@ -25,7 +25,7 @@ st.title("📤 Upload Sales Data")
 st.markdown("""
 Upload your Excel file containing sales data to calculate incentives.
 
-**Required Sheet**: `Sales Report - Hometown (2)`
+**Note**: The first sheet in your Excel file will be processed automatically.
 
 **Required Columns**:
 - Store Code, Name, Sales_Doc, Sales Date
@@ -40,7 +40,7 @@ st.divider()
 uploaded_file = st.file_uploader(
     "Choose an Excel file (.xlsx)",
     type=['xlsx'],
-    help="Upload the BI export with 'Sales Report - Hometown (2)' sheet"
+    help="Upload your sales data Excel file - the first sheet will be used"
 )
 
 if uploaded_file:
@@ -50,8 +50,8 @@ if uploaded_file:
     # Validate and process
     try:
         with st.spinner("Validating file..."):
-            # Quick validation
-            preview = pd.read_excel(uploaded_file, sheet_name='Sales Report - Hometown (2)', nrows=5)
+            # Quick validation - use first sheet
+            preview = pd.read_excel(uploaded_file, sheet_name=0, nrows=5)
 
             required_cols = [
                 'Store Code', 'Name', 'Sales_Doc', 'Sales Date', 'LOB', 'Bill No', 'Salesman',
@@ -150,7 +150,7 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"❌ Error reading file: {str(e)}")
-        st.info("💡 Make sure the file has a sheet named 'Sales Report - Hometown (2)'")
+        st.info("💡 Make sure your Excel file has the required columns in the first sheet")
 
 else:
     st.info("👆 Please upload an Excel file to get started")

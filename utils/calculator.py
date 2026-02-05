@@ -52,10 +52,13 @@ def calculate_incentives(row):
         'DM Inc Amt': dm_incentive
     })
 
-def process_file(uploaded_file):
+def process_file(uploaded_file, sheet_name=None):
     """Process uploaded Excel file"""
-    # Read file
-    df = pd.read_excel(uploaded_file, sheet_name='Sales Report - Hometown (2)', header=0)
+    # Read file - use first sheet if no sheet name specified
+    if sheet_name is None:
+        df = pd.read_excel(uploaded_file, sheet_name=0, header=0)  # Use first sheet
+    else:
+        df = pd.read_excel(uploaded_file, sheet_name=sheet_name, header=0)
 
     required_cols = [
         'Store Code', 'Name', 'Sales_Doc', 'Sales Date', 'LOB', 'Bill No', 'Salesman',
