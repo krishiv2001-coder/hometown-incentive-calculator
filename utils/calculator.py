@@ -124,17 +124,20 @@ def calculate_qualifier_metrics(df):
     """Calculate AOV and bill counts per store per LOB"""
     metrics = df.groupby(['Name', 'LOB']).agg({
         'Bill No': 'nunique',
-        'Sum of Sales value Without GST': 'sum'
+        'Sum of NET SALES VALUE': 'sum',  # WITH GST for AOV calculation
+        'Sum of Sales value Without GST': 'sum'  # Keep for reference
     }).reset_index()
 
-    metrics['Actual AOV'] = (metrics['Sum of Sales value Without GST'] / metrics['Bill No']).round(0)
+    # AOV uses NET SALES VALUE (with GST)
+    metrics['Actual AOV'] = (metrics['Sum of NET SALES VALUE'] / metrics['Bill No']).round(0)
     metrics.rename(columns={
         'Name': 'Store Name',
         'Bill No': 'Actual Bills',
-        'Sum of Sales value Without GST': 'Total Sales'
+        'Sum of Sales value Without GST': 'Total Sales Without GST',
+        'Sum of NET SALES VALUE': 'Total Sales With GST'
     }, inplace=True)
 
-    return metrics[['Store Name', 'LOB', 'Actual AOV', 'Actual Bills', 'Total Sales']]
+    return metrics[['Store Name', 'LOB', 'Actual AOV', 'Actual Bills', 'Total Sales With GST', 'Total Sales Without GST']]
 
 def apply_qualifier_logic(summary_df, qualifier_df, targets_dict):
     """
