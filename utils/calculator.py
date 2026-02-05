@@ -119,3 +119,78 @@ def create_employee_summary(df):
         summary_df = summary_df.sort_values(['Store Name', 'Total Points'], ascending=[True, False])
 
     return summary_df
+
+def calculate_qualifier_metrics(df):
+    """Calculate AOV and bill counts per store per LOB"""
+    metrics = df.groupby(['Name', 'LOB']).agg({
+        'Bill No': 'nunique',
+        'Sum of Sales value Without GST': 'sum'
+    }).reset_index()
+
+    metrics['Actual AOV'] = (metrics['Sum of Sales value Without GST'] / metrics['Bill No']).round(0)
+    metrics.rename(columns={
+        'Name': 'Store Name',
+        'Bill No': 'Actual Bills',
+        'Sum of Sales value Without GST': 'Total Sales'
+    }, inplace=True)
+
+    return metrics[['Store Name', 'LOB', 'Actual AOV', 'Actual Bills', 'Total Sales']]
+
+def apply_qualifier_logic(summary_df, qualifier_df, targets_dict):
+    """
+    Apply qualifier logic to determine final payable incentives
+
+    Args:
+        summary_df: Employee summary with accrued points
+        qualifier_df: Qualifier metrics (AOV, Bills) per store/LOB
+        targets_dict: Dict with structure {store_name: {lob: {'aov': X, 'bills': Y}}}
+
+    Returns:
+        summary_df with 'Final Payable' column added
+    """
+    summary_df = summary_df.copy()
+    summary_df['Final Payable Furniture'] = 0.0
+    summary_df['Final Payable Homeware'] = 0.0
+    summary_df['Final Payable Total'] = 0.0
+
+    # Build qualification status per store/LOB
+    qualified_stores = {}
+
+    for _, row in qualifier_df.iterrows():
+        store = row['Store Name']
+        lob = row['LOB']
+
+        if store in targets_dict and lob in targets_dict[store]:
+            target_aov = targets_dict[store][lob]['aov']
+            target_bills = targets_dict[store][lob]['bills']
+
+            aov_met = row['Actual AOV'] >= target_aov
+            bills_met = row['Actual Bills'] >= target_bills
+
+            qualified = aov_met and bills_met
+
+            if store not in qualified_stores:
+                qualified_stores[store] = {}
+            qualified_stores[store][lob] = qualified
+
+    # Apply qualifications to employee summary
+    for idx, row in summary_df.iterrows():
+        store = row['Store Name']
+
+        # Check Furniture qualification
+        if store in qualified_stores and 'Furniture' in qualified_stores[store]:
+            if qualified_stores[store]['Furniture']:
+                summary_df.at[idx, 'Final Payable Furniture'] = row['Furniture Points']
+
+        # Check Homeware qualification
+        if store in qualified_stores and 'Homeware' in qualified_stores[store]:
+            if qualified_stores[store]['Homeware']:
+                summary_df.at[idx, 'Final Payable Homeware'] = row['Homeware Points']
+
+        # Calculate total payable
+        summary_df.at[idx, 'Final Payable Total'] = (
+            summary_df.at[idx, 'Final Payable Furniture'] +
+            summary_df.at[idx, 'Final Payable Homeware']
+        )
+
+    return summary_df

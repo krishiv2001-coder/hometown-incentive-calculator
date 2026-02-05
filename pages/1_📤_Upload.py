@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.calculator import process_file, create_employee_summary
+from utils.calculator import process_file, create_employee_summary, calculate_qualifier_metrics
 
 # Page config
 st.set_page_config(page_title="Upload - Hometown", page_icon="📤", layout="wide")
@@ -85,6 +85,7 @@ if uploaded_file:
                         with st.spinner("Processing file..."):
                             df = process_file(uploaded_file)
                             summary_df = create_employee_summary(df)
+                            qualifier_df = calculate_qualifier_metrics(df)
 
                         st.success("✅ Processing completed!")
 
@@ -95,6 +96,7 @@ if uploaded_file:
                             'timestamp': datetime.now(),
                             'transactions_df': df,
                             'summary_df': summary_df,
+                            'qualifier_df': qualifier_df,
                             'total_transactions': len(df),
                             'total_incentives': float(df['Ince Amt'].sum()),
                             'employees_count': len(summary_df),
