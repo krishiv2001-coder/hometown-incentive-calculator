@@ -59,7 +59,9 @@ with st.sidebar:
     st.markdown("""
     **Hometown Incentive Calculator**
 
-    Version: 2.0.0 (Cloud Edition)
+    Version: 2.1.0 (AOV Fix Applied)
+
+    **Latest:** AOV now correctly uses NET SALES VALUE (with GST)
 
     This system calculates employee incentives based on:
     - Sales slabs (Furniture/Homeware)
