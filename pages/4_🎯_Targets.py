@@ -7,10 +7,17 @@ import pandas as pd
 import sys
 from pathlib import Path
 
-# Add parent directory to path
+# Add parent directory to path for local development
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.calculator import apply_qualifier_logic
+# Try multiple import methods for compatibility
+try:
+    from utils.calculator import apply_qualifier_logic
+except ImportError:
+    # For Streamlit Cloud
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils.calculator import apply_qualifier_logic
 
 # Page config
 st.set_page_config(page_title="Targets - Hometown", page_icon="🎯", layout="wide")
