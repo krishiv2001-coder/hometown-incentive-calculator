@@ -114,6 +114,9 @@ with st.sidebar:
         for month in available_months
     }
 
+    # Debug: Show month count
+    st.caption(f"Available months: {len(available_months)}")
+
     # Always show month selector
     selected = st.selectbox(
         "View Data For:",

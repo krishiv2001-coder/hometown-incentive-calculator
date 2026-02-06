@@ -129,24 +129,36 @@ else:
 
         # Top Performers Table (exclude "No Name")
         st.subheader("🏆 Top 10 Performers")
-        top_performers_data = filtered_summary[filtered_summary['Employee'] != 'No Name'].copy()
-        top_10 = top_performers_data.nlargest(10, 'Total Points')[
-            ['Employee', 'Store Name', 'Role', 'Furniture Points', 'Homeware Points', 'Total Points']
-        ].reset_index(drop=True)
 
-        st.dataframe(
-            top_10,
-            use_container_width=True,
-            column_config={
-                "Employee": "Employee",
-                "Store Name": "Store",
-                "Role": "Role",
-                "Furniture Points": st.column_config.NumberColumn("Furniture", format="₹%.2f"),
-                "Homeware Points": st.column_config.NumberColumn("Homeware", format="₹%.2f"),
-                "Total Points": st.column_config.NumberColumn("Total", format="₹%.2f")
-            },
-            hide_index=True
-        )
+        # Create stable dataframe to prevent shaking
+        if len(filtered_summary) > 0:
+            # Filter and sort in one go
+            top_10_df = (
+                filtered_summary[filtered_summary['Employee'] != 'No Name']
+                .nlargest(10, 'Total Points', keep='first')
+                [['Employee', 'Store Name', 'Role', 'Furniture Points', 'Homeware Points', 'Total Points']]
+                .copy()
+            )
+            top_10_df = top_10_df.reset_index(drop=True)
+
+            # Use container to stabilize rendering
+            top_performers_container = st.container()
+            with top_performers_container:
+                st.dataframe(
+                    top_10_df,
+                    use_container_width=True,
+                    column_config={
+                        "Employee": "Employee",
+                        "Store Name": "Store",
+                        "Role": "Role",
+                        "Furniture Points": st.column_config.NumberColumn("Furniture", format="₹%.2f"),
+                        "Homeware Points": st.column_config.NumberColumn("Homeware", format="₹%.2f"),
+                        "Total Points": st.column_config.NumberColumn("Total", format="₹%.2f")
+                    },
+                    hide_index=True
+                )
+        else:
+            st.info("No performers to display after filtering.")
 
         st.divider()
 
