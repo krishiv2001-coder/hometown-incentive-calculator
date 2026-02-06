@@ -27,19 +27,32 @@ if 'uploads' not in st.session_state:
     st.session_state.uploads = []
 
 if 'targets' not in st.session_state:
-    st.session_state.targets = {}
+    st.session_state.targets = {}  # Structure: targets[month][store][lob] = {aov, bills}
+
+if 'selected_month' not in st.session_state:
+    from datetime import datetime
+    st.session_state.selected_month = datetime.now().strftime("%Y-%m")
 
 st.title("🎯 Targets & Qualifier Tracker")
 
-# Check if there are any uploads
-if not st.session_state.uploads:
-    st.warning("⚠️ No uploads found. Please upload a file first.")
+# Filter uploads by selected month
+month_uploads = [u for u in st.session_state.uploads if u['month'] == st.session_state.selected_month]
+
+# Check if there are any uploads for this month
+if not month_uploads:
+    from datetime import datetime
+    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.warning(f"⚠️ No uploads found for {month_name}. Please upload a file or select a different month.")
     st.info("👉 Go to the **📤 Upload** page from the sidebar to upload data.")
 else:
-    # Select upload
+    from datetime import datetime
+    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.info(f"📅 Setting targets for: **{month_name}**")
+
+    # Select upload from this month
     upload_options = {
         f"{u['filename']} - {u['timestamp'].strftime('%Y-%m-%d %H:%M')}": u
-        for u in st.session_state.uploads
+        for u in month_uploads
     }
 
     selected_label = st.selectbox(
@@ -69,6 +82,10 @@ else:
         # Get unique stores and LOBs from qualifier data
         stores = sorted(qualifier_df['Store Name'].unique())
 
+        # Initialize targets for this month if not exists
+        if st.session_state.selected_month not in st.session_state.targets:
+            st.session_state.targets[st.session_state.selected_month] = {}
+
         # Create a form for each store
         for store in stores:
             with st.expander(f"🏪 {store}", expanded=False):
@@ -79,14 +96,14 @@ else:
                     furniture_aov = st.number_input(
                         "Target AOV (₹)",
                         min_value=0,
-                        value=st.session_state.targets.get(store, {}).get('Furniture', {}).get('aov', 25000),
+                        value=st.session_state.targets[st.session_state.selected_month].get(store, {}).get('Furniture', {}).get('aov', 25000),
                         step=1000,
                         key=f"{store}_furniture_aov"
                     )
                     furniture_bills = st.number_input(
                         "Target Bills",
                         min_value=0,
-                        value=st.session_state.targets.get(store, {}).get('Furniture', {}).get('bills', 50),
+                        value=st.session_state.targets[st.session_state.selected_month].get(store, {}).get('Furniture', {}).get('bills', 50),
                         step=5,
                         key=f"{store}_furniture_bills"
                     )
@@ -96,27 +113,27 @@ else:
                     homeware_aov = st.number_input(
                         "Target AOV (₹)",
                         min_value=0,
-                        value=st.session_state.targets.get(store, {}).get('Homeware', {}).get('aov', 8000),
+                        value=st.session_state.targets[st.session_state.selected_month].get(store, {}).get('Homeware', {}).get('aov', 8000),
                         step=1000,
                         key=f"{store}_homeware_aov"
                     )
                     homeware_bills = st.number_input(
                         "Target Bills",
                         min_value=0,
-                        value=st.session_state.targets.get(store, {}).get('Homeware', {}).get('bills', 100),
+                        value=st.session_state.targets[st.session_state.selected_month].get(store, {}).get('Homeware', {}).get('bills', 100),
                         step=5,
                         key=f"{store}_homeware_bills"
                     )
 
-                # Store in session state
-                if store not in st.session_state.targets:
-                    st.session_state.targets[store] = {}
+                # Store in session state for this month
+                if store not in st.session_state.targets[st.session_state.selected_month]:
+                    st.session_state.targets[st.session_state.selected_month][store] = {}
 
-                st.session_state.targets[store]['Furniture'] = {
+                st.session_state.targets[st.session_state.selected_month][store]['Furniture'] = {
                     'aov': furniture_aov,
                     'bills': furniture_bills
                 }
-                st.session_state.targets[store]['Homeware'] = {
+                st.session_state.targets[st.session_state.selected_month][store]['Homeware'] = {
                     'aov': homeware_aov,
                     'bills': homeware_bills
                 }
@@ -132,13 +149,16 @@ else:
         # Calculate qualifier status for each store × LOB
         qualifier_results = []
 
+        # Get targets for current month
+        month_targets = st.session_state.targets.get(st.session_state.selected_month, {})
+
         for _, row in qualifier_df.iterrows():
             store = row['Store Name']
             lob = row['LOB']
 
-            if store in st.session_state.targets and lob in st.session_state.targets[store]:
-                target_aov = st.session_state.targets[store][lob]['aov']
-                target_bills = st.session_state.targets[store][lob]['bills']
+            if store in month_targets and lob in month_targets[store]:
+                target_aov = month_targets[store][lob]['aov']
+                target_bills = month_targets[store][lob]['bills']
 
                 actual_aov = row['Actual AOV']
                 actual_bills = row['Actual Bills']
@@ -233,12 +253,13 @@ else:
 
         st.divider()
 
-        # Apply qualifier logic
-        if st.session_state.targets:
+        # Apply qualifier logic using targets for current month
+        month_targets = st.session_state.targets.get(st.session_state.selected_month, {})
+        if month_targets:
             summary_with_payables = apply_qualifier_logic(
                 summary_df,
                 qualifier_df,
-                st.session_state.targets
+                month_targets
             )
 
             # Overall summary

@@ -57,7 +57,7 @@ if st.session_state.uploads:
         # Aggregate stats for the month
         total_incentives = sum(u['total_incentives'] for u in month_uploads)
         total_transactions = sum(u['total_transactions'] for u in month_uploads)
-        unique_employees = len(set(emp for u in month_uploads for emp in u['summary_df']['Salesman'].values))
+        unique_employees = len(set(emp for u in month_uploads for emp in u['summary_df']['Employee'].values))
         unique_stores = len(set(store for u in month_uploads for store in u['transactions_df']['Name'].values))
 
         st.subheader("Month Aggregates")

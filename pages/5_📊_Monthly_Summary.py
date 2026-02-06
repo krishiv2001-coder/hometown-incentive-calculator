@@ -82,7 +82,10 @@ else:
     # Apply qualifier logic
     st.subheader("🎯 Qualifier Status & Final Payouts")
 
-    if st.session_state.targets:
+    # Get targets for current month
+    month_targets = st.session_state.targets.get(st.session_state.selected_month, {})
+
+    if month_targets:
         # Show qualifier status
         qualifier_data = []
         for _, row in monthly_qualifiers.iterrows():
@@ -91,9 +94,9 @@ else:
             actual_aov = row['Actual AOV']
             actual_bills = row['Actual Bills']
 
-            if store in st.session_state.targets and lob in st.session_state.targets[store]:
-                target_aov = st.session_state.targets[store][lob]['aov']
-                target_bills = st.session_state.targets[store][lob]['bills']
+            if store in month_targets and lob in month_targets[store]:
+                target_aov = month_targets[store][lob]['aov']
+                target_bills = month_targets[store][lob]['bills']
 
                 aov_met = actual_aov >= target_aov
                 bills_met = actual_bills >= target_bills
@@ -138,7 +141,7 @@ else:
             # Calculate final payables
             st.subheader("💰 Final Payables")
 
-            final_summary = apply_qualifier_logic(monthly_summary, monthly_qualifiers, st.session_state.targets)
+            final_summary = apply_qualifier_logic(monthly_summary, monthly_qualifiers, month_targets)
 
             # Exclude "No Name" from final summary display
             final_summary_display = final_summary[final_summary['Employee'] != 'No Name'].copy()
