@@ -24,8 +24,7 @@ month_uploads = [u for u in st.session_state.uploads if u['month'] == st.session
 if not month_uploads:
     from datetime import datetime
     month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
-    st.info(f"No uploads found for {month_name}. Go to the Upload page or select a different month!")
-    st.page_link("pages/1_📤_Upload.py", label="Upload File", icon="📤")
+    st.info(f"No uploads found for {month_name}. Go to the **📤 Upload** page from the sidebar to upload data or select a different month!")
 else:
     # Show selected month
     from datetime import datetime

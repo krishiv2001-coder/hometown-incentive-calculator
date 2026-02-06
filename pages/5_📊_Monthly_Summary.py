@@ -36,7 +36,7 @@ month_uploads = [u for u in st.session_state.uploads if u['month'] == st.session
 if not month_uploads:
     month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
     st.warning(f"⚠️ No uploads found for {month_name}. Please upload data or select a different month.")
-    st.page_link("pages/1_📤_Upload.py", label="Go to Upload Page", icon="📤")
+    st.info("👉 Go to the **📤 Upload** page from the sidebar to upload data.")
 else:
     month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
     st.info(f"📅 Summary for: **{month_name}**")
@@ -211,8 +211,7 @@ else:
         else:
             st.warning("No qualifier data available. Please ensure targets are set for all stores.")
     else:
-        st.warning("⚠️ No targets set. Please go to the **Targets** page to set AOV and Bills targets before calculating final payouts.")
-        st.page_link("pages/4_🎯_Targets.py", label="Go to Targets Page", icon="🎯")
+        st.warning("⚠️ No targets set. Please go to the **🎯 Targets** page from the sidebar to set AOV and Bills targets before calculating final payouts.")
 
 # Sidebar
 with st.sidebar:

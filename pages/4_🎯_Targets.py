@@ -34,7 +34,7 @@ st.title("🎯 Targets & Qualifier Tracker")
 # Check if there are any uploads
 if not st.session_state.uploads:
     st.warning("⚠️ No uploads found. Please upload a file first.")
-    st.page_link("pages/1_📤_Upload.py", label="Go to Upload Page", icon="📤")
+    st.info("👉 Go to the **📤 Upload** page from the sidebar to upload data.")
 else:
     # Select upload
     upload_options = {
