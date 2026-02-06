@@ -35,19 +35,75 @@ if 'selected_month' not in st.session_state:
 
 st.title("🎯 Targets & Qualifier Tracker")
 
-# Filter uploads by selected month
+# Initialize target month selection if not exists
+if 'target_month' not in st.session_state:
+    st.session_state.target_month = st.session_state.selected_month
+
+# Month selector for setting targets
+from datetime import datetime
+st.subheader("📅 Select Month for Target Entry")
+
+# Get available months from uploads + option for future months
+available_months = sorted(set(upload['month'] for upload in st.session_state.uploads), reverse=True) if st.session_state.uploads else []
+
+# Add current and next 3 months as options
+current_date = datetime.now()
+for i in range(4):
+    if i == 0:
+        future_month = current_date
+    else:
+        month_num = current_date.month + i
+        year_num = current_date.year
+        while month_num > 12:
+            month_num -= 12
+            year_num += 1
+        future_month = datetime(year_num, month_num, 1)
+
+    month_key = future_month.strftime("%Y-%m")
+    if month_key not in available_months:
+        available_months.append(month_key)
+
+available_months = sorted(set(available_months), reverse=True)
+
+month_display_dict = {month: datetime.strptime(month, "%Y-%m").strftime("%B %Y") for month in available_months}
+
+selected_target_month = st.selectbox(
+    "Enter/Edit targets for:",
+    options=available_months,
+    format_func=lambda x: month_display_dict[x],
+    index=available_months.index(st.session_state.target_month) if st.session_state.target_month in available_months else 0,
+    key='target_month_selector',
+    help="Select which month you want to set targets for (including future months)"
+)
+
+st.session_state.target_month = selected_target_month
+
+st.divider()
+
+# Filter uploads by selected month for viewing achievement
 month_uploads = [u for u in st.session_state.uploads if u['month'] == st.session_state.selected_month]
 
-# Check if there are any uploads for this month
+# Check if there are any uploads for the viewing month
 if not month_uploads:
-    from datetime import datetime
-    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
-    st.warning(f"⚠️ No uploads found for {month_name}. Please upload a file or select a different month.")
-    st.info("👉 Go to the **📤 Upload** page from the sidebar to upload data.")
+    view_month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.info(f"ℹ️ No uploads found for **{view_month_name}** (current filter). Targets can still be set for any month.")
+
+    # Show a simplified targets form without achievement data
+    # Get store list from any available upload or create default
+    if st.session_state.uploads:
+        # Get stores from most recent upload
+        recent_upload = st.session_state.uploads[-1]
+        qualifier_df = recent_upload['qualifier_df']
+    else:
+        # No uploads yet, create minimal interface
+        st.warning("Upload data first to see store-specific target forms.")
+        st.stop()
+
+    # Select upload from this month
+    upload_options = None
 else:
-    from datetime import datetime
-    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
-    st.info(f"📅 Setting targets for: **{month_name}**")
+    view_month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.info(f"📊 Viewing achievement for: **{view_month_name}**")
 
     # Select upload from this month
     upload_options = {
@@ -82,9 +138,9 @@ else:
         # Get unique stores and LOBs from qualifier data
         stores = sorted(qualifier_df['Store Name'].unique())
 
-        # Initialize targets for this month if not exists
-        if st.session_state.selected_month not in st.session_state.targets:
-            st.session_state.targets[st.session_state.selected_month] = {}
+        # Initialize targets for the target month if not exists
+        if st.session_state.target_month not in st.session_state.targets:
+            st.session_state.targets[st.session_state.target_month] = {}
 
         # Create a form for each store
         for store in stores:
@@ -96,16 +152,16 @@ else:
                     furniture_aov = st.number_input(
                         "Target AOV (₹)",
                         min_value=0,
-                        value=st.session_state.targets[st.session_state.selected_month].get(store, {}).get('Furniture', {}).get('aov', 25000),
+                        value=st.session_state.targets[st.session_state.target_month].get(store, {}).get('Furniture', {}).get('aov', 25000),
                         step=1000,
-                        key=f"{store}_furniture_aov"
+                        key=f"{store}_{st.session_state.target_month}_furniture_aov"
                     )
                     furniture_bills = st.number_input(
                         "Target Bills",
                         min_value=0,
-                        value=st.session_state.targets[st.session_state.selected_month].get(store, {}).get('Furniture', {}).get('bills', 50),
+                        value=st.session_state.targets[st.session_state.target_month].get(store, {}).get('Furniture', {}).get('bills', 50),
                         step=5,
-                        key=f"{store}_furniture_bills"
+                        key=f"{store}_{st.session_state.target_month}_furniture_bills"
                     )
 
                 with col2:
@@ -113,27 +169,27 @@ else:
                     homeware_aov = st.number_input(
                         "Target AOV (₹)",
                         min_value=0,
-                        value=st.session_state.targets[st.session_state.selected_month].get(store, {}).get('Homeware', {}).get('aov', 8000),
+                        value=st.session_state.targets[st.session_state.target_month].get(store, {}).get('Homeware', {}).get('aov', 8000),
                         step=1000,
-                        key=f"{store}_homeware_aov"
+                        key=f"{store}_{st.session_state.target_month}_homeware_aov"
                     )
                     homeware_bills = st.number_input(
                         "Target Bills",
                         min_value=0,
-                        value=st.session_state.targets[st.session_state.selected_month].get(store, {}).get('Homeware', {}).get('bills', 100),
+                        value=st.session_state.targets[st.session_state.target_month].get(store, {}).get('Homeware', {}).get('bills', 100),
                         step=5,
-                        key=f"{store}_homeware_bills"
+                        key=f"{store}_{st.session_state.target_month}_homeware_bills"
                     )
 
-                # Store in session state for this month
-                if store not in st.session_state.targets[st.session_state.selected_month]:
-                    st.session_state.targets[st.session_state.selected_month][store] = {}
+                # Store in session state for the target month
+                if store not in st.session_state.targets[st.session_state.target_month]:
+                    st.session_state.targets[st.session_state.target_month][store] = {}
 
-                st.session_state.targets[st.session_state.selected_month][store]['Furniture'] = {
+                st.session_state.targets[st.session_state.target_month][store]['Furniture'] = {
                     'aov': furniture_aov,
                     'bills': furniture_bills
                 }
-                st.session_state.targets[st.session_state.selected_month][store]['Homeware'] = {
+                st.session_state.targets[st.session_state.target_month][store]['Homeware'] = {
                     'aov': homeware_aov,
                     'bills': homeware_bills
                 }

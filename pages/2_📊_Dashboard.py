@@ -129,10 +129,11 @@ else:
 
         # Top Performers Table (exclude "No Name")
         st.subheader("🏆 Top 10 Performers")
-        top_performers_data = filtered_summary[filtered_summary['Employee'] != 'No Name']
+        top_performers_data = filtered_summary[filtered_summary['Employee'] != 'No Name'].copy()
         top_10 = top_performers_data.nlargest(10, 'Total Points')[
             ['Employee', 'Store Name', 'Role', 'Furniture Points', 'Homeware Points', 'Total Points']
-        ]
+        ].reset_index(drop=True)
+
         st.dataframe(
             top_10,
             use_container_width=True,
@@ -144,7 +145,8 @@ else:
                 "Homeware Points": st.column_config.NumberColumn("Homeware", format="₹%.2f"),
                 "Total Points": st.column_config.NumberColumn("Total", format="₹%.2f")
             },
-            hide_index=True
+            hide_index=True,
+            key="top_10_performers_table"
         )
 
         st.divider()
