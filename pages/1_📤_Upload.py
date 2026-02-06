@@ -71,6 +71,21 @@ if uploaded_file:
 
                 st.divider()
 
+                # Month selection
+                st.subheader("📅 Select Month")
+                col1, col2 = st.columns(2)
+                with col1:
+                    month_year = st.date_input(
+                        "Data Month",
+                        value=datetime.now(),
+                        format="YYYY-MM",
+                        help="Select the month this data belongs to"
+                    )
+                    # Format as YYYY-MM for storage
+                    selected_month = month_year.strftime("%Y-%m")
+
+                st.divider()
+
                 # Process button
                 col1, col2, col3 = st.columns([1, 1, 2])
                 with col1:
@@ -94,6 +109,7 @@ if uploaded_file:
                             'id': len(st.session_state.uploads),
                             'filename': uploaded_file.name,
                             'timestamp': datetime.now(),
+                            'month': selected_month,  # Store month in YYYY-MM format
                             'transactions_df': df,
                             'summary_df': summary_df,
                             'qualifier_df': qualifier_df,

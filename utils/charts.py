@@ -39,8 +39,10 @@ def create_lob_breakdown_chart(summary_df):
     return fig
 
 def create_top_performers_chart(summary_df, top_n=10):
-    """Horizontal bar chart of top performers"""
-    top_df = summary_df.nlargest(top_n, 'Total Points')
+    """Horizontal bar chart of top performers (excludes 'No Name')"""
+    # Filter out "No Name" entries
+    filtered_df = summary_df[summary_df['Employee'] != 'No Name']
+    top_df = filtered_df.nlargest(top_n, 'Total Points')
 
     fig = px.bar(
         top_df,

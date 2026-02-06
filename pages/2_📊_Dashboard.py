@@ -22,18 +22,31 @@ st.set_page_config(page_title="Dashboard - Hometown", page_icon="📊", layout="
 # Initialize session state
 if 'uploads' not in st.session_state:
     st.session_state.uploads = []
+if 'selected_month' not in st.session_state:
+    from datetime import datetime
+    st.session_state.selected_month = datetime.now().strftime("%Y-%m")
 
 st.title("📊 Analytics Dashboard")
 
-# Check if there are any uploads
-if not st.session_state.uploads:
-    st.warning("⚠️ No uploads found. Please upload a file first.")
+# Filter uploads by selected month
+month_uploads = [u for u in st.session_state.uploads if u['month'] == st.session_state.selected_month]
+
+# Check if there are any uploads for this month
+if not month_uploads:
+    from datetime import datetime
+    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.warning(f"⚠️ No uploads found for {month_name}. Please upload a file or select a different month.")
     st.page_link("pages/1_📤_Upload.py", label="Go to Upload Page", icon="📤")
 else:
-    # Select upload
+    # Show selected month
+    from datetime import datetime
+    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.info(f"📅 Viewing data for: **{month_name}**")
+
+    # Select upload from this month
     upload_options = {
         f"{u['filename']} - {u['timestamp'].strftime('%Y-%m-%d %H:%M')}": u
-        for u in st.session_state.uploads
+        for u in month_uploads
     }
 
     selected_label = st.selectbox(
@@ -114,9 +127,10 @@ else:
 
         st.divider()
 
-        # Top Performers Table
+        # Top Performers Table (exclude "No Name")
         st.subheader("🏆 Top 10 Performers")
-        top_10 = filtered_summary.nlargest(10, 'Total Points')[
+        top_performers_data = filtered_summary[filtered_summary['Employee'] != 'No Name']
+        top_10 = top_performers_data.nlargest(10, 'Total Points')[
             ['Employee', 'Store Name', 'Role', 'Furniture Points', 'Homeware Points', 'Total Points']
         ]
         st.dataframe(
@@ -156,9 +170,9 @@ else:
 
 # Sidebar stats
 with st.sidebar:
-    if st.session_state.uploads:
+    if month_uploads:
         st.divider()
-        st.subheader("Session Stats")
-        st.metric("Total Uploads", len(st.session_state.uploads))
-        total_all = sum(u['total_incentives'] for u in st.session_state.uploads)
-        st.metric("Total Incentives (All)", f"₹{total_all:,.2f}")
+        st.subheader("Month Stats")
+        st.metric("Uploads This Month", len(month_uploads))
+        total_month = sum(u['total_incentives'] for u in month_uploads)
+        st.metric("Total Incentives", f"₹{total_month:,.2f}")

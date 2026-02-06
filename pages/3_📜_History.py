@@ -12,29 +12,42 @@ st.set_page_config(page_title="History - Hometown", page_icon="📜", layout="wi
 # Initialize session state
 if 'uploads' not in st.session_state:
     st.session_state.uploads = []
+if 'selected_month' not in st.session_state:
+    from datetime import datetime
+    st.session_state.selected_month = datetime.now().strftime("%Y-%m")
 
 st.title("📜 Upload History")
 
-if not st.session_state.uploads:
-    st.info("No uploads found yet. Go to the Upload page to get started!")
+# Filter uploads by selected month
+month_uploads = [u for u in st.session_state.uploads if u['month'] == st.session_state.selected_month]
+
+if not month_uploads:
+    from datetime import datetime
+    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.info(f"No uploads found for {month_name}. Go to the Upload page or select a different month!")
     st.page_link("pages/1_📤_Upload.py", label="Upload File", icon="📤")
 else:
-    # Summary stats
-    total_incentives = sum(u['total_incentives'] for u in st.session_state.uploads)
-    total_transactions = sum(u['total_transactions'] for u in st.session_state.uploads)
+    # Show selected month
+    from datetime import datetime
+    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.info(f"📅 Viewing history for: **{month_name}**")
+
+    # Summary stats for selected month
+    total_incentives = sum(u['total_incentives'] for u in month_uploads)
+    total_transactions = sum(u['total_transactions'] for u in month_uploads)
 
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Uploads", len(st.session_state.uploads))
+    col1.metric("Uploads This Month", len(month_uploads))
     col2.metric("Total Transactions", f"{total_transactions:,}")
     col3.metric("Total Incentives", f"₹{total_incentives:,.2f}")
-    col4.metric("Latest Upload", st.session_state.uploads[-1]['timestamp'].strftime('%Y-%m-%d %H:%M'))
+    col4.metric("Latest Upload", month_uploads[-1]['timestamp'].strftime('%Y-%m-%d %H:%M'))
 
     st.divider()
 
     # History table/cards
-    st.subheader("All Uploads")
+    st.subheader(f"Uploads for {month_name}")
 
-    for idx, upload in enumerate(reversed(st.session_state.uploads)):
+    for idx, upload in enumerate(reversed(month_uploads)):
         with st.expander(
             f"📄 {upload['filename']} - {upload['timestamp'].strftime('%Y-%m-%d %H:%M')}",
             expanded=(idx == 0)
@@ -82,17 +95,31 @@ else:
 with st.sidebar:
     st.header("About History")
     st.markdown("""
-    This page shows all uploads from your current session.
+    This page shows uploads organized by month.
 
     **Actions:**
     - Download processed Excel files
     - View results in Dashboard
-    - Compare multiple uploads
+    - Compare uploads within a month
 
-    **Note:** History is stored in your browser session and will be cleared when you close the browser.
+    **Note:** Use the month filter at the top of the sidebar to view different months.
     """)
 
     if st.session_state.uploads:
+        st.divider()
+        st.metric("Total Uploads (All Months)", len(st.session_state.uploads))
+
+        # Group uploads by month
+        from collections import defaultdict
+        uploads_by_month = defaultdict(int)
+        for u in st.session_state.uploads:
+            uploads_by_month[u['month']] += 1
+
+        st.write("**By Month:**")
+        for month in sorted(uploads_by_month.keys(), reverse=True):
+            month_display = datetime.strptime(month, "%Y-%m").strftime("%b %Y")
+            st.write(f"- {month_display}: {uploads_by_month[month]} uploads")
+
         st.divider()
         if st.button("🗑️ Clear All History", use_container_width=True):
             st.session_state.uploads = []

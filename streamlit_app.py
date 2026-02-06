@@ -16,6 +16,11 @@ st.set_page_config(
 if 'uploads' not in st.session_state:
     st.session_state.uploads = []
 
+# Initialize selected month (defaults to current month or most recent upload month)
+if 'selected_month' not in st.session_state:
+    from datetime import datetime
+    st.session_state.selected_month = datetime.now().strftime("%Y-%m")
+
 # Main page
 st.title("🏠 Hometown Incentive Calculator")
 
@@ -32,29 +37,75 @@ This tool automates the calculation of employee incentives from raw sales data.
 ---
 """)
 
-# Show latest upload stats if any
+# Show stats for selected month
 if st.session_state.uploads:
-    latest = st.session_state.uploads[-1]
-    st.subheader("Latest Upload")
+    # Filter uploads by selected month
+    month_uploads = [u for u in st.session_state.uploads if u['month'] == st.session_state.selected_month]
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Filename", latest['filename'])
-    col2.metric("Upload Time", latest['timestamp'].strftime('%Y-%m-%d %H:%M'))
-    col3.metric("Status", "✅ Completed")
+    if month_uploads:
+        from datetime import datetime
+        month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+        st.subheader(f"📊 {month_name} Summary")
 
-    st.subheader("Summary")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Incentives", f"₹{latest['total_incentives']:,.2f}")
-    col2.metric("Transactions", f"{latest['total_transactions']:,}")
-    col3.metric("Employees", latest['employees_count'])
-    col4.metric("Stores", latest['stores_count'])
+        # Show latest upload in this month
+        latest = month_uploads[-1]
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Latest File", latest['filename'])
+        col2.metric("Upload Time", latest['timestamp'].strftime('%Y-%m-%d %H:%M'))
+        col3.metric("Total Uploads", len(month_uploads))
 
-    st.info("👉 Go to **Dashboard** to view detailed analytics or **History** to see all uploads")
+        # Aggregate stats for the month
+        total_incentives = sum(u['total_incentives'] for u in month_uploads)
+        total_transactions = sum(u['total_transactions'] for u in month_uploads)
+        unique_employees = len(set(emp for u in month_uploads for emp in u['summary_df']['Salesman'].values))
+        unique_stores = len(set(store for u in month_uploads for store in u['transactions_df']['Name'].values))
+
+        st.subheader("Month Aggregates")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total Incentives", f"₹{total_incentives:,.2f}")
+        col2.metric("Transactions", f"{total_transactions:,}")
+        col3.metric("Employees", unique_employees)
+        col4.metric("Stores", unique_stores)
+
+        st.info("👉 Go to **Dashboard** to view detailed analytics or **History** to see all uploads")
+    else:
+        st.info(f"No uploads for {st.session_state.selected_month} yet. Switch months or upload data.")
 else:
     st.info("👆 No uploads yet. Go to the **Upload** page to get started!")
 
 # Sidebar
 with st.sidebar:
+    # Monthly Navigation
+    st.header("📅 Month Filter")
+
+    # Get unique months from uploads
+    if st.session_state.uploads:
+        available_months = sorted(set(upload['month'] for upload in st.session_state.uploads), reverse=True)
+
+        # Month selector
+        from datetime import datetime
+        month_display = {month: datetime.strptime(month, "%Y-%m").strftime("%B %Y") for month in available_months}
+
+        selected = st.selectbox(
+            "View Data For:",
+            options=available_months,
+            format_func=lambda x: month_display[x],
+            key='month_selector',
+            help="Filter all pages by selected month"
+        )
+
+        # Update selected month in session state
+        st.session_state.selected_month = selected
+
+        # Show stats for selected month
+        month_uploads = [u for u in st.session_state.uploads if u['month'] == selected]
+        st.metric("Uploads This Month", len(month_uploads))
+
+        st.divider()
+    else:
+        st.info("No uploads yet")
+        st.divider()
+
     st.header("About")
     st.markdown("""
     **Hometown Incentive Calculator**

@@ -1,0 +1,233 @@
+"""
+Monthly Summary Page - Final payouts after qualifier logic
+"""
+import streamlit as st
+import pandas as pd
+import sys
+from pathlib import Path
+from datetime import datetime
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+try:
+    from utils.calculator import apply_qualifier_logic
+except ImportError:
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils.calculator import apply_qualifier_logic
+
+# Page config
+st.set_page_config(page_title="Monthly Summary - Hometown", page_icon="📊", layout="wide")
+
+# Initialize session state
+if 'uploads' not in st.session_state:
+    st.session_state.uploads = []
+if 'selected_month' not in st.session_state:
+    st.session_state.selected_month = datetime.now().strftime("%Y-%m")
+if 'targets' not in st.session_state:
+    st.session_state.targets = {}
+
+st.title("📊 Monthly Summary & Final Payouts")
+
+# Filter uploads by selected month
+month_uploads = [u for u in st.session_state.uploads if u['month'] == st.session_state.selected_month]
+
+if not month_uploads:
+    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.warning(f"⚠️ No uploads found for {month_name}. Please upload data or select a different month.")
+    st.page_link("pages/1_📤_Upload.py", label="Go to Upload Page", icon="📤")
+else:
+    month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
+    st.info(f"📅 Summary for: **{month_name}**")
+
+    # Aggregate all data for the month
+    st.subheader("Month Overview")
+
+    # Combine all transaction data
+    all_transactions = pd.concat([u['transactions_df'] for u in month_uploads], ignore_index=True)
+
+    # Combine all summary data
+    all_summaries = pd.concat([u['summary_df'] for u in month_uploads], ignore_index=True)
+
+    # Group by employee to get monthly totals
+    monthly_summary = all_summaries.groupby(['Store Code', 'Store Name', 'Employee', 'Role']).agg({
+        'Furniture Points': 'sum',
+        'Homeware Points': 'sum',
+        'Total Points': 'sum'
+    }).reset_index()
+
+    # Combine all qualifier data
+    all_qualifiers = pd.concat([u['qualifier_df'] for u in month_uploads], ignore_index=True)
+
+    # Group qualifier data by Store and LOB
+    monthly_qualifiers = all_qualifiers.groupby(['Store Name', 'LOB']).agg({
+        'Actual Bills': 'sum',
+        'Total Sales With GST': 'sum',
+        'Total Sales Without GST': 'sum'
+    }).reset_index()
+
+    # Recalculate AOV for the month
+    monthly_qualifiers['Actual AOV'] = (monthly_qualifiers['Total Sales With GST'] / monthly_qualifiers['Actual Bills']).round(0)
+
+    # Show aggregate stats
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Uploads", len(month_uploads))
+    col2.metric("Total Transactions", f"{len(all_transactions):,}")
+    col3.metric("Accrued Points", f"₹{monthly_summary['Total Points'].sum():,.2f}")
+    col4.metric("Unique Employees", len(monthly_summary))
+
+    st.divider()
+
+    # Apply qualifier logic
+    st.subheader("🎯 Qualifier Status & Final Payouts")
+
+    if st.session_state.targets:
+        # Show qualifier status
+        qualifier_data = []
+        for _, row in monthly_qualifiers.iterrows():
+            store = row['Store Name']
+            lob = row['LOB']
+            actual_aov = row['Actual AOV']
+            actual_bills = row['Actual Bills']
+
+            if store in st.session_state.targets and lob in st.session_state.targets[store]:
+                target_aov = st.session_state.targets[store][lob]['aov']
+                target_bills = st.session_state.targets[store][lob]['bills']
+
+                aov_met = actual_aov >= target_aov
+                bills_met = actual_bills >= target_bills
+                qualified = aov_met and bills_met
+
+                if qualified:
+                    status = "✅ Qualified"
+                elif aov_met:
+                    status = "⚠️ AOV Met, Bills Short"
+                elif bills_met:
+                    status = "⚠️ Bills Met, AOV Short"
+                else:
+                    status = "❌ Not Qualified"
+
+                aov_achievement = (actual_aov / target_aov * 100) if target_aov > 0 else 0
+                bills_achievement = (actual_bills / target_bills * 100) if target_bills > 0 else 0
+
+                qualifier_data.append({
+                    'Store': store,
+                    'LOB': lob,
+                    'Actual AOV': f"₹{actual_aov:,.0f}",
+                    'Target AOV': f"₹{target_aov:,.0f}",
+                    'AOV %': f"{aov_achievement:.1f}%",
+                    'Actual Bills': int(actual_bills),
+                    'Target Bills': int(target_bills),
+                    'Bills %': f"{bills_achievement:.1f}%",
+                    'Status': status,
+                    'Qualified': qualified
+                })
+
+        if qualifier_data:
+            qualifier_status_df = pd.DataFrame(qualifier_data)
+
+            st.dataframe(
+                qualifier_status_df.drop(columns=['Qualified']),
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.divider()
+
+            # Calculate final payables
+            st.subheader("💰 Final Payables")
+
+            final_summary = apply_qualifier_logic(monthly_summary, monthly_qualifiers, st.session_state.targets)
+
+            # Exclude "No Name" from final summary display
+            final_summary_display = final_summary[final_summary['Employee'] != 'No Name'].copy()
+
+            # Show comparison
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Accrued (Furniture)", f"₹{monthly_summary['Furniture Points'].sum():,.2f}")
+            col2.metric("Accrued (Homeware)", f"₹{monthly_summary['Homeware Points'].sum():,.2f}")
+            col3.metric("Accrued (Total)", f"₹{monthly_summary['Total Points'].sum():,.2f}")
+
+            st.write("")
+
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Payable (Furniture)", f"₹{final_summary_display['Final Payable Furniture'].sum():,.2f}",
+                       delta=f"{final_summary_display['Final Payable Furniture'].sum() - monthly_summary['Furniture Points'].sum():,.2f}")
+            col2.metric("Payable (Homeware)", f"₹{final_summary_display['Final Payable Homeware'].sum():,.2f}",
+                       delta=f"{final_summary_display['Final Payable Homeware'].sum() - monthly_summary['Homeware Points'].sum():,.2f}")
+            col3.metric("Payable (Total)", f"₹{final_summary_display['Final Payable Total'].sum():,.2f}",
+                       delta=f"{final_summary_display['Final Payable Total'].sum() - monthly_summary['Total Points'].sum():,.2f}")
+
+            st.divider()
+
+            # Detailed table
+            st.subheader("📋 Employee-wise Final Payouts")
+
+            final_display = final_summary_display[[
+                'Store Name', 'Employee', 'Role',
+                'Furniture Points', 'Final Payable Furniture',
+                'Homeware Points', 'Final Payable Homeware',
+                'Total Points', 'Final Payable Total'
+            ]].copy()
+
+            st.dataframe(
+                final_display,
+                use_container_width=True,
+                column_config={
+                    "Store Name": "Store",
+                    "Employee": "Employee",
+                    "Role": "Role",
+                    "Furniture Points": st.column_config.NumberColumn("Furniture Accrued", format="₹%.2f"),
+                    "Final Payable Furniture": st.column_config.NumberColumn("Furniture Payable", format="₹%.2f"),
+                    "Homeware Points": st.column_config.NumberColumn("Homeware Accrued", format="₹%.2f"),
+                    "Final Payable Homeware": st.column_config.NumberColumn("Homeware Payable", format="₹%.2f"),
+                    "Total Points": st.column_config.NumberColumn("Total Accrued", format="₹%.2f"),
+                    "Final Payable Total": st.column_config.NumberColumn("Total Payable", format="₹%.2f", help="Final amount to be paid after qualifier logic")
+                },
+                hide_index=True
+            )
+
+            # Download button
+            st.divider()
+            st.subheader("📥 Download Monthly Summary")
+
+            import io
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                final_display.to_excel(writer, sheet_name='Final Payouts', index=False)
+                qualifier_status_df.to_excel(writer, sheet_name='Qualifier Status', index=False)
+                monthly_summary.to_excel(writer, sheet_name='Accrued Points', index=False)
+            output.seek(0)
+
+            st.download_button(
+                label="📥 Download Monthly Summary Excel",
+                data=output,
+                file_name=f"Monthly_Summary_{st.session_state.selected_month}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                type="primary"
+            )
+
+        else:
+            st.warning("No qualifier data available. Please ensure targets are set for all stores.")
+    else:
+        st.warning("⚠️ No targets set. Please go to the **Targets** page to set AOV and Bills targets before calculating final payouts.")
+        st.page_link("pages/4_🎯_Targets.py", label="Go to Targets Page", icon="🎯")
+
+# Sidebar
+with st.sidebar:
+    st.header("About Monthly Summary")
+    st.markdown("""
+    This page shows the **final payouts** for the selected month after applying qualifier logic.
+
+    **What it shows:**
+    - Aggregated data from all uploads in the month
+    - Qualifier status (AOV & Bills targets)
+    - Accrued points vs Final payable amounts
+    - Employee-wise breakdown
+
+    **Important:**
+    - Both AOV and Bills targets must be met for payout
+    - Furniture and Homeware are evaluated independently
+    - "No Name" entries are excluded from final payouts
+    """)
