@@ -78,33 +78,63 @@ with st.sidebar:
     # Monthly Navigation
     st.header("📅 Month Filter")
 
-    # Get unique months from uploads
+    # Generate constant month list (past 12 months + current + next 3 months)
+    from datetime import datetime
+
+    def add_months(date, months):
+        """Add or subtract months from a date"""
+        month = date.month - 1 + months
+        year = date.year + month // 12
+        month = month % 12 + 1
+        return datetime(year, month, 1)
+
+    current_date = datetime.now()
+    available_months = []
+
+    # Add past 12 months
+    for i in range(12, 0, -1):
+        past_month = add_months(current_date, -i)
+        available_months.append(past_month.strftime("%Y-%m"))
+
+    # Add current month
+    available_months.append(current_date.strftime("%Y-%m"))
+
+    # Add next 3 months
+    for i in range(1, 4):
+        future_month = add_months(current_date, i)
+        available_months.append(future_month.strftime("%Y-%m"))
+
+    # Month selector
+    month_display = {month: datetime.strptime(month, "%Y-%m").strftime("%B %Y") for month in available_months}
+
+    # Mark months with uploads
+    months_with_uploads = set(upload['month'] for upload in st.session_state.uploads) if st.session_state.uploads else set()
+    month_display_with_indicator = {
+        month: f"{month_display[month]} {'📁' if month in months_with_uploads else ''}"
+        for month in available_months
+    }
+
+    # Always show month selector
+    selected = st.selectbox(
+        "View Data For:",
+        options=available_months,
+        format_func=lambda x: month_display_with_indicator[x],
+        index=available_months.index(st.session_state.selected_month) if st.session_state.selected_month in available_months else available_months.index(current_date.strftime("%Y-%m")),
+        key='month_selector',
+        help="Filter all pages by selected month (📁 = has data)"
+    )
+
+    # Update selected month in session state
+    st.session_state.selected_month = selected
+
+    # Show stats for selected month if uploads exist
     if st.session_state.uploads:
-        available_months = sorted(set(upload['month'] for upload in st.session_state.uploads), reverse=True)
-
-        # Month selector
-        from datetime import datetime
-        month_display = {month: datetime.strptime(month, "%Y-%m").strftime("%B %Y") for month in available_months}
-
-        selected = st.selectbox(
-            "View Data For:",
-            options=available_months,
-            format_func=lambda x: month_display[x],
-            key='month_selector',
-            help="Filter all pages by selected month"
-        )
-
-        # Update selected month in session state
-        st.session_state.selected_month = selected
-
-        # Show stats for selected month
         month_uploads = [u for u in st.session_state.uploads if u['month'] == selected]
         st.metric("Uploads This Month", len(month_uploads))
-
-        st.divider()
     else:
         st.info("No uploads yet")
-        st.divider()
+
+    st.divider()
 
     st.header("About")
     st.markdown("""
