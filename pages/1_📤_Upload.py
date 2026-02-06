@@ -125,6 +125,9 @@ if uploaded_file:
                         st.session_state.uploads.append(upload_data)
                         st.session_state.current_upload = upload_data
 
+                        # Update selected_month to match the uploaded file's month
+                        st.session_state.selected_month = selected_month
+
                         # Show summary
                         st.divider()
                         st.subheader("Results Summary")
