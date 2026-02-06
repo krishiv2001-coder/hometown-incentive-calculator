@@ -75,14 +75,18 @@ if uploaded_file:
                 st.subheader("📅 Select Month")
                 col1, col2 = st.columns(2)
                 with col1:
+                    # Use date_input without custom format, extract month
                     month_year = st.date_input(
                         "Data Month",
                         value=datetime.now(),
-                        format="YYYY-MM",
-                        help="Select the month this data belongs to"
+                        help="Select any date - we'll use the month and year"
                     )
                     # Format as YYYY-MM for storage
                     selected_month = month_year.strftime("%Y-%m")
+
+                # Show selected month for clarity
+                month_display = datetime.strptime(selected_month, "%Y-%m").strftime("%B %Y")
+                st.info(f"Selected month: **{month_display}**")
 
                 st.divider()
 
