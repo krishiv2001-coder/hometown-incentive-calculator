@@ -2,6 +2,7 @@
 Dashboard Page - Analytics and visualizations
 """
 import streamlit as st
+import pandas as pd
 import sys
 from pathlib import Path
 
@@ -25,6 +26,8 @@ if 'uploads' not in st.session_state:
 if 'selected_month' not in st.session_state:
     from datetime import datetime
     st.session_state.selected_month = datetime.now().strftime("%Y-%m")
+if 'targets' not in st.session_state:
+    st.session_state.targets = {}
 
 st.title("📊 Analytics Dashboard")
 
