@@ -141,6 +141,17 @@ if uploaded_file:
                             'employees_count': len(summary_df),
                             'stores_count': int(df['Name'].nunique())
                         }
+
+                        # Save to database
+                        try:
+                            from utils.database import save_upload
+                            upload_id = save_upload(upload_data)
+                            upload_data['id'] = upload_id
+                            st.success(f"✅ Upload saved to database (ID: {upload_id})")
+                        except Exception as e:
+                            st.error(f"⚠️ Failed to save to database: {e}")
+                            st.info("Data is still available in this session, but won't persist after refresh.")
+
                         st.session_state.uploads.append(upload_data)
                         st.session_state.current_upload = upload_data
 

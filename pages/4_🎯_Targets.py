@@ -206,8 +206,29 @@ else:
                 }
 
         if st.button("💾 Save All Targets", type="primary"):
-            st.success("✅ Targets saved!")
-            st.balloons()
+            try:
+                from utils.database import save_targets
+
+                # Save all targets for the selected target month to database
+                month_targets = st.session_state.targets.get(st.session_state.target_month, {})
+                saved_count = 0
+
+                for store_name, lobs in month_targets.items():
+                    for lob, values in lobs.items():
+                        save_targets(
+                            st.session_state.target_month,
+                            store_name,
+                            lob,
+                            values['aov'],
+                            values['bills']
+                        )
+                        saved_count += 1
+
+                st.success(f"✅ {saved_count} targets saved to database!")
+                st.balloons()
+            except Exception as e:
+                st.error(f"⚠️ Failed to save targets to database: {e}")
+                st.info("Targets are still available in this session, but won't persist after refresh.")
 
     # ==================== TAB 2: QUALIFIER STATUS ====================
     with tab2:

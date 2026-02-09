@@ -1,8 +1,9 @@
 """
 Hometown Incentive Calculator - Main Page
-Full-featured cloud version
+Full-featured cloud version with PostgreSQL persistence
 """
 import streamlit as st
+from utils.database import init_database, load_uploads, load_targets
 
 # Page config - MUST be first Streamlit command
 st.set_page_config(
@@ -12,9 +13,24 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize session state for storing uploads
-if 'uploads' not in st.session_state:
-    st.session_state.uploads = []
+# Initialize database tables (only runs if tables don't exist)
+try:
+    init_database()
+except Exception as e:
+    st.error(f"Database initialization error: {e}")
+    st.info("Please check your database connection in .streamlit/secrets.toml")
+
+# Load data from database into session state (only once per session)
+if 'db_loaded' not in st.session_state:
+    try:
+        st.session_state.uploads = load_uploads()
+        st.session_state.targets = load_targets()
+        st.session_state.db_loaded = True
+    except Exception as e:
+        st.error(f"Error loading data from database: {e}")
+        st.session_state.uploads = []
+        st.session_state.targets = {}
+        st.session_state.db_loaded = False
 
 # Initialize selected month (defaults to current month or most recent upload month)
 if 'selected_month' not in st.session_state:
