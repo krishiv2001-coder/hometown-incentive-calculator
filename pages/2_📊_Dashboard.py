@@ -77,6 +77,101 @@ else:
 
     st.divider()
 
+    # Qualifier Status & Target Progress (Rolling Basis)
+    st.subheader("🎯 Target Progress & Qualification Status")
+    st.caption("Based on current snapshot - Actual payouts calculated from Final/Month-End upload only")
+
+    # Get targets for this month
+    month_targets = st.session_state.targets.get(st.session_state.selected_month, {})
+
+    if month_targets and 'qualifier_df' in selected_upload:
+        qualifier_df = selected_upload['qualifier_df']
+
+        # Create qualifier status table
+        qualifier_status = []
+        for _, row in qualifier_df.iterrows():
+            store = row['Store Name']
+            lob = row['LOB']
+            actual_aov = row['Actual AOV']
+            actual_bills = row['Actual Bills']
+
+            # Get targets for this store and LOB
+            if store in month_targets and lob in month_targets[store]:
+                target_aov = month_targets[store][lob].get('aov', 0)
+                target_bills = month_targets[store][lob].get('bills', 0)
+
+                # Calculate progress percentages
+                aov_progress = (actual_aov / target_aov * 100) if target_aov > 0 else 0
+                bills_progress = (actual_bills / target_bills * 100) if target_bills > 0 else 0
+
+                # Check if both targets are met
+                aov_met = actual_aov >= target_aov
+                bills_met = actual_bills >= target_bills
+                both_met = aov_met and bills_met
+
+                qualifier_status.append({
+                    'Store': store,
+                    'LOB': lob,
+                    'Target AOV': f"₹{target_aov:,.0f}",
+                    'Actual AOV': f"₹{actual_aov:,.0f}",
+                    'AOV Progress': f"{aov_progress:.1f}%",
+                    'AOV Status': '✅' if aov_met else '❌',
+                    'Target Bills': target_bills,
+                    'Actual Bills': actual_bills,
+                    'Bills Progress': f"{bills_progress:.1f}%",
+                    'Bills Status': '✅' if bills_met else '❌',
+                    'Qualified': '✅ YES' if both_met else '❌ NO'
+                })
+
+        if qualifier_status:
+            qualifier_status_df = pd.DataFrame(qualifier_status)
+            st.dataframe(
+                qualifier_status_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Store": "Store",
+                    "LOB": "LOB",
+                    "Target AOV": "Target AOV",
+                    "Actual AOV": "Current AOV",
+                    "AOV Progress": "AOV %",
+                    "AOV Status": "AOV",
+                    "Target Bills": "Target Bills",
+                    "Actual Bills": "Current Bills",
+                    "Bills Progress": "Bills %",
+                    "Bills Status": "Bills",
+                    "Qualified": "Payout Eligible"
+                }
+            )
+
+            # Show potential payout if qualified
+            from utils.calculator import apply_qualifier_logic
+
+            # Apply qualifier logic to current snapshot
+            current_summary_with_payout = apply_qualifier_logic(
+                summary_df.copy(),
+                qualifier_df,
+                month_targets
+            )
+
+            # Calculate potential payout
+            total_accrued = summary_df['Total Points'].sum()
+            potential_payout = current_summary_with_payout['Total Points'].sum()
+            disqualified_amount = total_accrued - potential_payout
+
+            col1, col2, col3 = st.columns(3)
+            col1.metric("💰 Total Points Accrued", f"₹{total_accrued:,.2f}")
+            col2.metric("✅ Potential Payout (if qualified)", f"₹{potential_payout:,.2f}", delta=f"-₹{disqualified_amount:,.2f}" if disqualified_amount > 0 else None)
+            col3.metric("❌ Disqualified Points", f"₹{disqualified_amount:,.2f}")
+
+            st.info("💡 **Note:** This shows potential payouts based on current data. Only employees whose Store × LOB meets BOTH AOV and Bills targets are eligible. Actual payouts calculated from Final/Month-End upload.")
+        else:
+            st.info("No matching targets found for the stores and LOBs in this upload.")
+    else:
+        st.warning("⚠️ No targets set for this month. Go to the **🎯 Targets** page to set targets.")
+
+    st.divider()
+
     # Filters
     with st.sidebar:
         st.header("Filters")
