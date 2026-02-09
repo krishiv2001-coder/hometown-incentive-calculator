@@ -43,16 +43,23 @@ else:
     month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
     st.info(f"📅 Viewing data for: **{month_name}**")
 
-    # Select upload from this month
-    upload_options = {
-        f"{u['filename']} - {u['timestamp'].strftime('%Y-%m-%d %H:%M')}": u
-        for u in month_uploads
-    }
+    # Progress Tracker Notice
+    st.warning("📊 **Progress Tracker** - This shows snapshot data for tracking purposes only. Actual payouts are calculated from Final/Month-End uploads on the Monthly Summary page.")
+
+    # Select upload snapshot to view
+    upload_options = {}
+    for u in month_uploads:
+        # Create display label with data_as_of_date and final indicator
+        data_as_of_str = u['data_as_of_date'].strftime('%b %d, %Y') if 'data_as_of_date' in u else u['timestamp'].strftime('%b %d, %Y')
+        final_indicator = " 🔒 FINAL" if u.get('is_final', False) else ""
+        label = f"Data as of {data_as_of_str}{final_indicator}"
+        upload_options[label] = u
 
     selected_label = st.selectbox(
-        "Select Upload to Analyze",
+        "Select Data Snapshot",
         options=list(upload_options.keys()),
-        index=len(upload_options) - 1  # Default to latest
+        index=len(upload_options) - 1,  # Default to latest
+        help="View different snapshots of data to track progress over time"
     )
     selected_upload = upload_options[selected_label]
 

@@ -47,15 +47,19 @@ else:
     st.subheader(f"Uploads for {month_name}")
 
     for idx, upload in enumerate(reversed(month_uploads)):
-        with st.expander(
-            f"📄 {upload['filename']} - {upload['timestamp'].strftime('%Y-%m-%d %H:%M')}",
-            expanded=(idx == 0)
-        ):
+        # Create expander title with data_as_of_date and final indicator
+        data_as_of_str = upload['data_as_of_date'].strftime('%b %d, %Y') if 'data_as_of_date' in upload else upload['timestamp'].strftime('%b %d, %Y')
+        final_badge = " 🔒 FINAL" if upload.get('is_final', False) else " 📊"
+        expander_title = f"{final_badge} Data as of {data_as_of_str} - {upload['filename']}"
+
+        with st.expander(expander_title, expanded=(idx == 0)):
             col1, col2 = st.columns([2, 1])
 
             with col1:
                 st.write(f"**Upload ID**: {upload['id']}")
                 st.write(f"**Upload Time**: {upload['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}")
+                st.write(f"**Data As Of**: {data_as_of_str}")
+                st.write(f"**Type**: {'🔒 **Final/Month-End** (used for payout calculations)' if upload.get('is_final', False) else '📊 Progress Tracker'}")
                 st.write(f"**Status**: ✅ Completed")
 
                 st.divider()
@@ -106,7 +110,14 @@ with st.sidebar:
 
     if st.session_state.uploads:
         st.divider()
-        st.metric("Total Uploads (All Months)", len(st.session_state.uploads))
+        total_uploads = len(st.session_state.uploads)
+        final_uploads = len([u for u in st.session_state.uploads if u.get('is_final', False)])
+        progress_uploads = total_uploads - final_uploads
+
+        st.metric("Total Uploads (All Months)", total_uploads)
+        col_a, col_b = st.columns(2)
+        col_a.metric("🔒 Final", final_uploads)
+        col_b.metric("📊 Progress", progress_uploads)
 
         # Group uploads by month
         from collections import defaultdict

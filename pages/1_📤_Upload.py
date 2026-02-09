@@ -71,22 +71,39 @@ if uploaded_file:
 
                 st.divider()
 
-                # Month selection
-                st.subheader("📅 Select Month")
+                # Month selection and metadata
+                st.subheader("📅 Data Information")
                 col1, col2 = st.columns(2)
+
                 with col1:
                     # Use date_input without custom format, extract month
                     month_year = st.date_input(
                         "Data Month",
                         value=datetime.now(),
-                        help="Select any date - we'll use the month and year"
+                        help="Which month does this data belong to?"
                     )
                     # Format as YYYY-MM for storage
                     selected_month = month_year.strftime("%Y-%m")
 
-                # Show selected month for clarity
+                with col2:
+                    # Data "as of" date - the last date covered by this data
+                    data_as_of = st.date_input(
+                        "Data As Of Date",
+                        value=datetime.now(),
+                        help="What is the last date included in this data? (e.g., if uploading on Feb 12 with data till Feb 11, select Feb 11)"
+                    )
+
+                # Mark as final checkbox
+                is_final = st.checkbox(
+                    "✅ Mark as Final/Month-End Upload",
+                    value=False,
+                    help="Check this only for the final month-end upload that should be used for actual payout calculations"
+                )
+
+                # Show summary
                 month_display = datetime.strptime(selected_month, "%Y-%m").strftime("%B %Y")
-                st.info(f"Selected month: **{month_display}**")
+                final_indicator = " 🔒 **FINAL**" if is_final else " 📊 Progress Tracker"
+                st.info(f"**{month_display}** - Data as of {data_as_of.strftime('%b %d, %Y')}{final_indicator}")
 
                 st.divider()
 
@@ -114,6 +131,8 @@ if uploaded_file:
                             'filename': uploaded_file.name,
                             'timestamp': datetime.now(),
                             'month': selected_month,  # Store month in YYYY-MM format
+                            'data_as_of_date': data_as_of,  # Last date covered by this data
+                            'is_final': is_final,  # Whether this is the final month-end upload
                             'transactions_df': df,
                             'summary_df': summary_df,
                             'qualifier_df': qualifier_df,

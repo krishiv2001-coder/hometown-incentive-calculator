@@ -41,38 +41,44 @@ else:
     month_name = datetime.strptime(st.session_state.selected_month, "%Y-%m").strftime("%B %Y")
     st.info(f"📅 Summary for: **{month_name}**")
 
-    # Aggregate all data for the month
-    st.subheader("Month Overview")
+    # Filter for FINAL uploads only
+    final_uploads = [u for u in month_uploads if u.get('is_final', False)]
 
-    # Combine all transaction data
-    all_transactions = pd.concat([u['transactions_df'] for u in month_uploads], ignore_index=True)
+    if not final_uploads:
+        st.error("🔒 **No Final/Month-End Upload Found**")
+        st.warning(f"""
+        This page calculates actual payouts based on **Final/Month-End data only**.
 
-    # Combine all summary data
-    all_summaries = pd.concat([u['summary_df'] for u in month_uploads], ignore_index=True)
+        You have {len(month_uploads)} upload(s) for {month_name}, but none are marked as Final.
 
-    # Group by employee to get monthly totals
-    monthly_summary = all_summaries.groupby(['Store Code', 'Store Name', 'Employee', 'Role']).agg({
-        'Furniture Points': 'sum',
-        'Homeware Points': 'sum',
-        'Total Points': 'sum'
-    }).reset_index()
+        **To set final payouts:**
+        1. Go to the **📤 Upload** page
+        2. Upload the month-end data
+        3. Check the "✅ Mark as Final/Month-End Upload" box
+        4. Process the file
 
-    # Combine all qualifier data
-    all_qualifiers = pd.concat([u['qualifier_df'] for u in month_uploads], ignore_index=True)
+        💡 Use the **📊 Dashboard** page to view progress snapshots.
+        """)
+        st.stop()
 
-    # Group qualifier data by Store and LOB
-    monthly_qualifiers = all_qualifiers.groupby(['Store Name', 'LOB']).agg({
-        'Actual Bills': 'sum',
-        'Total Sales With GST': 'sum',
-        'Total Sales Without GST': 'sum'
-    }).reset_index()
+    # Use the latest final upload if multiple exist
+    final_upload = sorted(final_uploads, key=lambda x: x['timestamp'])[-1]
 
-    # Recalculate AOV for the month
-    monthly_qualifiers['Actual AOV'] = (monthly_qualifiers['Total Sales With GST'] / monthly_qualifiers['Actual Bills']).round(0)
+    if len(final_uploads) > 1:
+        st.info(f"ℹ️ Multiple final uploads found. Using the latest one (uploaded {final_upload['timestamp'].strftime('%Y-%m-%d %H:%M')})")
 
-    # Show aggregate stats
+    st.success(f"🔒 **Using Final Upload** - Data as of {final_upload['data_as_of_date'].strftime('%B %d, %Y') if 'data_as_of_date' in final_upload else 'N/A'}")
+
+    # Use only the final upload data (no aggregation)
+    st.subheader("Month-End Overview")
+
+    all_transactions = final_upload['transactions_df']
+    monthly_summary = final_upload['summary_df'].copy()
+    monthly_qualifiers = final_upload['qualifier_df'].copy()
+
+    # Show stats from final upload
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Uploads", len(month_uploads))
+    col1.metric("Final Upload Date", final_upload['data_as_of_date'].strftime('%b %d') if 'data_as_of_date' in final_upload else 'N/A')
     col2.metric("Total Transactions", f"{len(all_transactions):,}")
     col3.metric("Accrued Points", f"₹{monthly_summary['Total Points'].sum():,.2f}")
     col4.metric("Unique Employees", len(monthly_summary))
