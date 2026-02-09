@@ -43,29 +43,40 @@ if 'target_month' not in st.session_state:
 from datetime import datetime
 st.subheader("📅 Select Month for Target Entry")
 
-# Get available months from uploads + option for future months
-available_months = sorted(set(upload['month'] for upload in st.session_state.uploads), reverse=True) if st.session_state.uploads else []
+# Helper function to add/subtract months
+def add_months(date, months):
+    """Add or subtract months from a date"""
+    month = date.month - 1 + months
+    year = date.year + month // 12
+    month = month % 12 + 1
+    return datetime(year, month, 1)
 
-# Add current and next 3 months as options
+# Generate constant 16-month list (past 12 + current + next 3)
 current_date = datetime.now()
-for i in range(4):
-    if i == 0:
-        future_month = current_date
-    else:
-        month_num = current_date.month + i
-        year_num = current_date.year
-        while month_num > 12:
-            month_num -= 12
-            year_num += 1
-        future_month = datetime(year_num, month_num, 1)
+available_months = []
 
-    month_key = future_month.strftime("%Y-%m")
-    if month_key not in available_months:
-        available_months.append(month_key)
+# Add past 12 months
+for i in range(12, 0, -1):
+    past_month = add_months(current_date, -i)
+    available_months.append(past_month.strftime("%Y-%m"))
 
-available_months = sorted(set(available_months), reverse=True)
+# Add current month
+available_months.append(current_date.strftime("%Y-%m"))
 
-month_display_dict = {month: datetime.strptime(month, "%Y-%m").strftime("%B %Y") for month in available_months}
+# Add next 3 months
+for i in range(1, 4):
+    future_month = add_months(current_date, i)
+    available_months.append(future_month.strftime("%Y-%m"))
+
+# Reverse to show newest first
+available_months = list(reversed(available_months))
+
+# Create month display with upload indicators
+months_with_uploads = set(upload['month'] for upload in st.session_state.uploads) if st.session_state.uploads else set()
+month_display_dict = {
+    month: f"{datetime.strptime(month, '%Y-%m').strftime('%B %Y')} {'📁' if month in months_with_uploads else ''}"
+    for month in available_months
+}
 
 selected_target_month = st.selectbox(
     "Enter/Edit targets for:",
