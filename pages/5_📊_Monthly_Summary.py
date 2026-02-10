@@ -157,14 +157,14 @@ else:
                 lob = row['LOB']
                 qualified = row['Qualified']
 
-                # Sum up accrued points for this store × LOB
-                store_employees = monthly_summary[monthly_summary['Store Name'] == store]
+                # Sum up accrued points for this store × LOB (exclude "No Name")
+                store_employees = monthly_summary[(monthly_summary['Store Name'] == store) & (monthly_summary['Employee'] != 'No Name')]
                 if lob == 'Furniture':
                     accrued = store_employees['Furniture Points'].sum()
-                    payable = final_summary[final_summary['Store Name'] == store]['Final Payable Furniture'].sum()
+                    payable = final_summary[(final_summary['Store Name'] == store) & (final_summary['Employee'] != 'No Name')]['Final Payable Furniture'].sum()
                 else:  # Homeware
                     accrued = store_employees['Homeware Points'].sum()
-                    payable = final_summary[final_summary['Store Name'] == store]['Final Payable Homeware'].sum()
+                    payable = final_summary[(final_summary['Store Name'] == store) & (final_summary['Employee'] != 'No Name')]['Final Payable Homeware'].sum()
 
                 store_breakdown.append({
                     'Store': store,
