@@ -162,15 +162,16 @@ else:
                     st.markdown("**Furniture Targets**")
                     furniture_aov = st.number_input(
                         "Target AOV (₹)",
-                        min_value=0,
-                        value=st.session_state.targets[st.session_state.target_month].get(store, {}).get('Furniture', {}).get('aov', 25000),
-                        step=1000,
+                        min_value=0.0,
+                        value=float(st.session_state.targets[st.session_state.target_month].get(store, {}).get('Furniture', {}).get('aov', 25000.0)),
+                        step=1000.0,
+                        format="%.0f",
                         key=f"{store}_{st.session_state.target_month}_furniture_aov"
                     )
                     furniture_bills = st.number_input(
                         "Target Bills",
                         min_value=0,
-                        value=st.session_state.targets[st.session_state.target_month].get(store, {}).get('Furniture', {}).get('bills', 50),
+                        value=int(st.session_state.targets[st.session_state.target_month].get(store, {}).get('Furniture', {}).get('bills', 50)),
                         step=5,
                         key=f"{store}_{st.session_state.target_month}_furniture_bills"
                     )
@@ -179,15 +180,16 @@ else:
                     st.markdown("**Homeware Targets**")
                     homeware_aov = st.number_input(
                         "Target AOV (₹)",
-                        min_value=0,
-                        value=st.session_state.targets[st.session_state.target_month].get(store, {}).get('Homeware', {}).get('aov', 8000),
-                        step=1000,
+                        min_value=0.0,
+                        value=float(st.session_state.targets[st.session_state.target_month].get(store, {}).get('Homeware', {}).get('aov', 8000.0)),
+                        step=1000.0,
+                        format="%.0f",
                         key=f"{store}_{st.session_state.target_month}_homeware_aov"
                     )
                     homeware_bills = st.number_input(
                         "Target Bills",
                         min_value=0,
-                        value=st.session_state.targets[st.session_state.target_month].get(store, {}).get('Homeware', {}).get('bills', 100),
+                        value=int(st.session_state.targets[st.session_state.target_month].get(store, {}).get('Homeware', {}).get('bills', 100)),
                         step=5,
                         key=f"{store}_{st.session_state.target_month}_homeware_bills"
                     )
