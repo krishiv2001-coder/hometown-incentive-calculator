@@ -91,7 +91,7 @@ def save_upload(upload_data):
             ) VALUES (
                 :filename, :upload_timestamp, :month, :data_as_of_date, :is_final,
                 :total_transactions, :total_incentives, :employees_count, :stores_count,
-                :transactions_data::jsonb, :summary_data::jsonb, :qualifier_data::jsonb
+                CAST(:transactions_data AS jsonb), CAST(:summary_data AS jsonb), CAST(:qualifier_data AS jsonb)
             ) RETURNING id
         """), {
             'filename': upload_data['filename'],
