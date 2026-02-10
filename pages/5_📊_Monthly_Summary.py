@@ -144,10 +144,83 @@ else:
 
             st.divider()
 
-            # Calculate final payables
-            st.subheader("💰 Final Payables")
+            # Store-by-Store Breakdown
+            st.subheader("🏪 Store-by-Store Payable Breakdown")
 
+            # Calculate final payables first
             final_summary = apply_qualifier_logic(monthly_summary, monthly_qualifiers, month_targets)
+
+            # Create store-level aggregation
+            store_breakdown = []
+            for row in qualifier_data:
+                store = row['Store']
+                lob = row['LOB']
+                qualified = row['Qualified']
+
+                # Sum up accrued points for this store × LOB
+                store_employees = monthly_summary[monthly_summary['Store Name'] == store]
+                if lob == 'Furniture':
+                    accrued = store_employees['Furniture Points'].sum()
+                    payable = final_summary[final_summary['Store Name'] == store]['Final Payable Furniture'].sum()
+                else:  # Homeware
+                    accrued = store_employees['Homeware Points'].sum()
+                    payable = final_summary[final_summary['Store Name'] == store]['Final Payable Homeware'].sum()
+
+                store_breakdown.append({
+                    'Store': store,
+                    'LOB': lob,
+                    'Qualified': '✅ Yes' if qualified else '❌ No',
+                    'Accrued Points': accrued,
+                    'Final Payable': payable,
+                    'Difference': payable - accrued
+                })
+
+            if store_breakdown:
+                store_breakdown_df = pd.DataFrame(store_breakdown)
+
+                # Show separate tables for Furniture and Homeware
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.write("**Furniture**")
+                    furniture_df = store_breakdown_df[store_breakdown_df['LOB'] == 'Furniture'].copy()
+                    furniture_df = furniture_df.drop(columns=['LOB'])
+                    st.dataframe(
+                        furniture_df,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Store": "Store",
+                            "Qualified": "Status",
+                            "Accrued Points": st.column_config.NumberColumn("Accrued", format="₹%.2f"),
+                            "Final Payable": st.column_config.NumberColumn("Payable", format="₹%.2f"),
+                            "Difference": st.column_config.NumberColumn("Diff", format="₹%.2f")
+                        }
+                    )
+                    st.metric("Total Furniture Payable", f"₹{furniture_df['Final Payable'].sum():,.2f}")
+
+                with col2:
+                    st.write("**Homeware**")
+                    homeware_df = store_breakdown_df[store_breakdown_df['LOB'] == 'Homeware'].copy()
+                    homeware_df = homeware_df.drop(columns=['LOB'])
+                    st.dataframe(
+                        homeware_df,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Store": "Store",
+                            "Qualified": "Status",
+                            "Accrued Points": st.column_config.NumberColumn("Accrued", format="₹%.2f"),
+                            "Final Payable": st.column_config.NumberColumn("Payable", format="₹%.2f"),
+                            "Difference": st.column_config.NumberColumn("Diff", format="₹%.2f")
+                        }
+                    )
+                    st.metric("Total Homeware Payable", f"₹{homeware_df['Final Payable'].sum():,.2f}")
+
+            st.divider()
+
+            # Overall Final Payables Summary
+            st.subheader("💰 Final Payables Summary")
 
             # Exclude "No Name" from final summary display
             final_summary_display = final_summary[final_summary['Employee'] != 'No Name'].copy()
