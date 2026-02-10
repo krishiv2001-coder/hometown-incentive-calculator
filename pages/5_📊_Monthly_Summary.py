@@ -222,24 +222,50 @@ else:
             # Overall Final Payables Summary
             st.subheader("💰 Final Payables Summary")
 
-            # Exclude "No Name" from final summary display
+            # Calculate "No Name" PE exclusions
+            no_name_summary = monthly_summary[monthly_summary['Employee'] == 'No Name'].copy()
             final_summary_display = final_summary[final_summary['Employee'] != 'No Name'].copy()
 
-            # Show comparison
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Accrued (Furniture)", f"₹{monthly_summary['Furniture Points'].sum():,.2f}")
-            col2.metric("Accrued (Homeware)", f"₹{monthly_summary['Homeware Points'].sum():,.2f}")
-            col3.metric("Accrued (Total)", f"₹{monthly_summary['Total Points'].sum():,.2f}")
+            # Breakdown explanation
+            st.info("""
+            **Incentive Payment Logic:**
+            - ✅ Named employees (PE, SM, DM) → **Paid**
+            - ❌ "No Name" PE (unknown salesperson) → **Not Paid**
+            - ✅ SM and DM for "No Name" transactions → **Still Paid** (they have actual names)
+            """)
 
-            st.write("")
-
+            # Show detailed breakdown
             col1, col2, col3 = st.columns(3)
-            col1.metric("Payable (Furniture)", f"₹{final_summary_display['Final Payable Furniture'].sum():,.2f}",
-                       delta=f"{final_summary_display['Final Payable Furniture'].sum() - monthly_summary['Furniture Points'].sum():,.2f}")
-            col2.metric("Payable (Homeware)", f"₹{final_summary_display['Final Payable Homeware'].sum():,.2f}",
-                       delta=f"{final_summary_display['Final Payable Homeware'].sum() - monthly_summary['Homeware Points'].sum():,.2f}")
-            col3.metric("Payable (Total)", f"₹{final_summary_display['Final Payable Total'].sum():,.2f}",
-                       delta=f"{final_summary_display['Final Payable Total'].sum() - monthly_summary['Total Points'].sum():,.2f}")
+
+            with col1:
+                st.markdown("**Furniture Breakdown**")
+                total_furn = monthly_summary['Furniture Points'].sum()
+                no_name_furn = no_name_summary['Furniture Points'].sum()
+                payable_furn = final_summary_display['Final Payable Furniture'].sum()
+
+                st.metric("Total Accrued", f"₹{total_furn:,.2f}")
+                st.metric('"No Name" PE (excluded)', f"₹{no_name_furn:,.2f}", delta=f"-₹{no_name_furn:,.2f}")
+                st.metric("✅ FINAL PAYABLE", f"₹{payable_furn:,.2f}", delta=f"-₹{total_furn - payable_furn:,.2f}")
+
+            with col2:
+                st.markdown("**Homeware Breakdown**")
+                total_home = monthly_summary['Homeware Points'].sum()
+                no_name_home = no_name_summary['Homeware Points'].sum()
+                payable_home = final_summary_display['Final Payable Homeware'].sum()
+
+                st.metric("Total Accrued", f"₹{total_home:,.2f}")
+                st.metric('"No Name" PE (excluded)', f"₹{no_name_home:,.2f}", delta=f"-₹{no_name_home:,.2f}")
+                st.metric("✅ FINAL PAYABLE", f"₹{payable_home:,.2f}", delta=f"-₹{total_home - payable_home:,.2f}")
+
+            with col3:
+                st.markdown("**Total Breakdown**")
+                total_all = monthly_summary['Total Points'].sum()
+                no_name_all = no_name_summary['Total Points'].sum()
+                payable_all = final_summary_display['Final Payable Total'].sum()
+
+                st.metric("Total Accrued", f"₹{total_all:,.2f}")
+                st.metric('"No Name" PE (excluded)', f"₹{no_name_all:,.2f}", delta=f"-₹{no_name_all:,.2f}")
+                st.metric("✅ FINAL PAYABLE", f"₹{payable_all:,.2f}", delta=f"-₹{total_all - payable_all:,.2f}")
 
             st.divider()
 
