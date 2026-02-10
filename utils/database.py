@@ -126,22 +126,49 @@ def load_uploads():
 
         uploads = []
         for row in result:
-            # Convert JSON back to DataFrames
-            uploads.append({
-                'id': row[0],
-                'filename': row[1],
-                'timestamp': row[2],
-                'month': row[3],
-                'data_as_of_date': row[4],
-                'is_final': row[5],
-                'total_transactions': row[6],
-                'total_incentives': float(row[7]),
-                'employees_count': row[8],
-                'stores_count': row[9],
-                'transactions_df': pd.read_json(row[10], orient='records'),
-                'summary_df': pd.read_json(row[11], orient='records'),
-                'qualifier_df': pd.read_json(row[12], orient='records')
-            })
+            try:
+                # Convert JSONB (dict/list) back to DataFrames
+                # PostgreSQL JSONB returns Python dict/list, not JSON string
+                transactions_data = row[10]
+                summary_data = row[11]
+                qualifier_data = row[12]
+
+                # If data is already a dict/list, convert directly to DataFrame
+                # If it's a string, parse it first
+                if isinstance(transactions_data, str):
+                    transactions_df = pd.read_json(transactions_data, orient='records')
+                else:
+                    transactions_df = pd.DataFrame(transactions_data)
+
+                if isinstance(summary_data, str):
+                    summary_df = pd.read_json(summary_data, orient='records')
+                else:
+                    summary_df = pd.DataFrame(summary_data)
+
+                if isinstance(qualifier_data, str):
+                    qualifier_df = pd.read_json(qualifier_data, orient='records')
+                else:
+                    qualifier_df = pd.DataFrame(qualifier_data)
+
+                uploads.append({
+                    'id': row[0],
+                    'filename': row[1],
+                    'timestamp': row[2],
+                    'month': row[3],
+                    'data_as_of_date': row[4],
+                    'is_final': row[5],
+                    'total_transactions': row[6],
+                    'total_incentives': float(row[7]),
+                    'employees_count': row[8],
+                    'stores_count': row[9],
+                    'transactions_df': transactions_df,
+                    'summary_df': summary_df,
+                    'qualifier_df': qualifier_df
+                })
+            except Exception as e:
+                # Log error but continue with other uploads
+                print(f"Error loading upload {row[0]}: {e}")
+                continue
 
         return uploads
 
