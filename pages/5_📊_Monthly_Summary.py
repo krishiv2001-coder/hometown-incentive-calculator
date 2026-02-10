@@ -240,32 +240,38 @@ else:
             with col1:
                 st.markdown("**Furniture Breakdown**")
                 total_furn = monthly_summary['Furniture Points'].sum()
-                no_name_furn = no_name_summary['Furniture Points'].sum()
-                payable_furn = final_summary_display['Final Payable Furniture'].sum()
+                qualified_furn_all = final_summary['Final Payable Furniture'].sum()  # Includes "No Name"
+                payable_furn = final_summary_display['Final Payable Furniture'].sum()  # Excludes "No Name"
+                no_name_furn = qualified_furn_all - payable_furn
 
-                st.metric("Total Accrued", f"₹{total_furn:,.2f}")
-                st.metric('"No Name" PE (excluded)', f"₹{no_name_furn:,.2f}", delta=f"-₹{no_name_furn:,.2f}")
-                st.metric("✅ FINAL PAYABLE", f"₹{payable_furn:,.2f}", delta=f"-₹{total_furn - payable_furn:,.2f}")
+                st.metric("1️⃣ Total Accrued", f"₹{total_furn:,.2f}")
+                st.metric("2️⃣ After Qualifier Logic", f"₹{qualified_furn_all:,.2f}", delta=f"-₹{total_furn - qualified_furn_all:,.2f}")
+                st.metric('3️⃣ "No Name" PE (excluded)', f"₹{no_name_furn:,.2f}", delta=f"-₹{no_name_furn:,.2f}")
+                st.metric("✅ FINAL PAYABLE", f"₹{payable_furn:,.2f}")
 
             with col2:
                 st.markdown("**Homeware Breakdown**")
                 total_home = monthly_summary['Homeware Points'].sum()
-                no_name_home = no_name_summary['Homeware Points'].sum()
-                payable_home = final_summary_display['Final Payable Homeware'].sum()
+                qualified_home_all = final_summary['Final Payable Homeware'].sum()  # Includes "No Name"
+                payable_home = final_summary_display['Final Payable Homeware'].sum()  # Excludes "No Name"
+                no_name_home = qualified_home_all - payable_home
 
-                st.metric("Total Accrued", f"₹{total_home:,.2f}")
-                st.metric('"No Name" PE (excluded)', f"₹{no_name_home:,.2f}", delta=f"-₹{no_name_home:,.2f}")
-                st.metric("✅ FINAL PAYABLE", f"₹{payable_home:,.2f}", delta=f"-₹{total_home - payable_home:,.2f}")
+                st.metric("1️⃣ Total Accrued", f"₹{total_home:,.2f}")
+                st.metric("2️⃣ After Qualifier Logic", f"₹{qualified_home_all:,.2f}", delta=f"-₹{total_home - qualified_home_all:,.2f}")
+                st.metric('3️⃣ "No Name" PE (excluded)', f"₹{no_name_home:,.2f}", delta=f"-₹{no_name_home:,.2f}")
+                st.metric("✅ FINAL PAYABLE", f"₹{payable_home:,.2f}")
 
             with col3:
                 st.markdown("**Total Breakdown**")
                 total_all = monthly_summary['Total Points'].sum()
-                no_name_all = no_name_summary['Total Points'].sum()
-                payable_all = final_summary_display['Final Payable Total'].sum()
+                qualified_all = final_summary['Final Payable Total'].sum()  # Includes "No Name"
+                payable_all = final_summary_display['Final Payable Total'].sum()  # Excludes "No Name"
+                no_name_all = qualified_all - payable_all
 
-                st.metric("Total Accrued", f"₹{total_all:,.2f}")
-                st.metric('"No Name" PE (excluded)', f"₹{no_name_all:,.2f}", delta=f"-₹{no_name_all:,.2f}")
-                st.metric("✅ FINAL PAYABLE", f"₹{payable_all:,.2f}", delta=f"-₹{total_all - payable_all:,.2f}")
+                st.metric("1️⃣ Total Accrued", f"₹{total_all:,.2f}")
+                st.metric("2️⃣ After Qualifier Logic", f"₹{qualified_all:,.2f}", delta=f"-₹{total_all - qualified_all:,.2f}")
+                st.metric('3️⃣ "No Name" PE (excluded)', f"₹{no_name_all:,.2f}", delta=f"-₹{no_name_all:,.2f}")
+                st.metric("✅ FINAL PAYABLE", f"₹{payable_all:,.2f}")
 
             st.divider()
 
