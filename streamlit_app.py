@@ -23,11 +23,22 @@ except Exception as e:
 # Load data from database into session state (only once per session)
 if 'db_loaded' not in st.session_state:
     try:
-        st.session_state.uploads = load_uploads()
-        st.session_state.targets = load_targets()
-        st.session_state.db_loaded = True
+        with st.spinner("Loading data from database..."):
+            st.session_state.uploads = load_uploads()
+            st.session_state.targets = load_targets()
+            st.session_state.db_loaded = True
+
+            # Show success message with count
+            if len(st.session_state.uploads) > 0:
+                st.success(f"✅ Loaded {len(st.session_state.uploads)} upload(s) from database")
+            else:
+                st.info("ℹ️ No previous uploads found. Database is empty.")
     except Exception as e:
-        st.error(f"Error loading data from database: {e}")
+        st.error(f"❌ Error loading data from database: {e}")
+        st.error(f"Error type: {type(e).__name__}")
+        import traceback
+        with st.expander("Show error details"):
+            st.code(traceback.format_exc())
         st.session_state.uploads = []
         st.session_state.targets = {}
         st.session_state.db_loaded = False
