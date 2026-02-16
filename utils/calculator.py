@@ -6,6 +6,16 @@ from datetime import datetime
 
 def calculate_incentives(row):
     """Calculate incentive for a single transaction"""
+    # If salesperson is "No Name", NOBODY gets paid
+    salesman = str(row.get('Salesman', '')).strip()
+    if salesman == 'No Name' or salesman == '':
+        return pd.Series({
+            'Ince Amt': 0,
+            'PE Inc amt': 0,
+            'SM Inc Amt': 0,
+            'DM Inc Amt': 0
+        })
+
     sales_with_gst = row['Sum of NET SALES VALUE']
     sales_without_gst = row['Sum of Sales value Without GST']
     lob = row['LOB']

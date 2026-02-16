@@ -157,14 +157,14 @@ else:
                 lob = row['LOB']
                 qualified = row['Qualified']
 
-                # Sum up accrued points for this store × LOB (exclude "No Name")
-                store_employees = monthly_summary[(monthly_summary['Store Name'] == store) & (monthly_summary['Employee'] != 'No Name')]
+                # Sum up accrued points for this store × LOB
+                store_employees = monthly_summary[monthly_summary['Store Name'] == store]
                 if lob == 'Furniture':
                     accrued = store_employees['Furniture Points'].sum()
-                    payable = final_summary[(final_summary['Store Name'] == store) & (final_summary['Employee'] != 'No Name')]['Final Payable Furniture'].sum()
+                    payable = final_summary[final_summary['Store Name'] == store]['Final Payable Furniture'].sum()
                 else:  # Homeware
                     accrued = store_employees['Homeware Points'].sum()
-                    payable = final_summary[(final_summary['Store Name'] == store) & (final_summary['Employee'] != 'No Name')]['Final Payable Homeware'].sum()
+                    payable = final_summary[final_summary['Store Name'] == store]['Final Payable Homeware'].sum()
 
                 store_breakdown.append({
                     'Store': store,
@@ -222,16 +222,16 @@ else:
             # Overall Final Payables Summary
             st.subheader("💰 Final Payables Summary")
 
-            # Calculate "No Name" PE exclusions
-            no_name_summary = monthly_summary[monthly_summary['Employee'] == 'No Name'].copy()
-            final_summary_display = final_summary[final_summary['Employee'] != 'No Name'].copy()
+            # No need to filter "No Name" - they already have 0 points from calculation
+            final_summary_display = final_summary.copy()
 
             # Breakdown explanation
             st.info("""
             **Incentive Payment Logic:**
-            - ✅ Named employees (PE, SM, DM) → **Paid**
-            - ❌ "No Name" PE (unknown salesperson) → **Not Paid**
-            - ✅ SM and DM for "No Name" transactions → **Still Paid** (they have actual names)
+            - ✅ Named employees (PE, SM, DM) → **Paid** (based on qualifier logic)
+            - ❌ "No Name" transactions → **NOBODY gets paid** (0 points for all roles)
+
+            💡 When salesperson is "No Name", all roles (PE, SM, DM) get 0 incentive points.
             """)
 
             # Show detailed breakdown
@@ -240,38 +240,26 @@ else:
             with col1:
                 st.markdown("**Furniture Breakdown**")
                 total_furn = monthly_summary['Furniture Points'].sum()
-                qualified_furn_all = final_summary['Final Payable Furniture'].sum()  # Includes "No Name"
-                payable_furn = final_summary_display['Final Payable Furniture'].sum()  # Excludes "No Name"
-                no_name_furn = qualified_furn_all - payable_furn
+                payable_furn = final_summary_display['Final Payable Furniture'].sum()
 
-                st.metric("1️⃣ Total Accrued", f"₹{total_furn:,.2f}")
-                st.metric("2️⃣ After Qualifier Logic", f"₹{qualified_furn_all:,.2f}", delta=f"-₹{total_furn - qualified_furn_all:,.2f}")
-                st.metric('3️⃣ "No Name" PE (excluded)', f"₹{no_name_furn:,.2f}", delta=f"-₹{no_name_furn:,.2f}")
-                st.metric("✅ FINAL PAYABLE", f"₹{payable_furn:,.2f}")
+                st.metric("1️⃣ Total Accrued", f"₹{total_furn:,.2f}", help="Total points earned (excludes 'No Name' transactions which have 0 points)")
+                st.metric("✅ FINAL PAYABLE", f"₹{payable_furn:,.2f}", delta=f"-₹{total_furn - payable_furn:,.2f}", help="After applying qualifier logic (AOV + Bills targets)")
 
             with col2:
                 st.markdown("**Homeware Breakdown**")
                 total_home = monthly_summary['Homeware Points'].sum()
-                qualified_home_all = final_summary['Final Payable Homeware'].sum()  # Includes "No Name"
-                payable_home = final_summary_display['Final Payable Homeware'].sum()  # Excludes "No Name"
-                no_name_home = qualified_home_all - payable_home
+                payable_home = final_summary_display['Final Payable Homeware'].sum()
 
-                st.metric("1️⃣ Total Accrued", f"₹{total_home:,.2f}")
-                st.metric("2️⃣ After Qualifier Logic", f"₹{qualified_home_all:,.2f}", delta=f"-₹{total_home - qualified_home_all:,.2f}")
-                st.metric('3️⃣ "No Name" PE (excluded)', f"₹{no_name_home:,.2f}", delta=f"-₹{no_name_home:,.2f}")
-                st.metric("✅ FINAL PAYABLE", f"₹{payable_home:,.2f}")
+                st.metric("1️⃣ Total Accrued", f"₹{total_home:,.2f}", help="Total points earned (excludes 'No Name' transactions which have 0 points)")
+                st.metric("✅ FINAL PAYABLE", f"₹{payable_home:,.2f}", delta=f"-₹{total_home - payable_home:,.2f}", help="After applying qualifier logic (AOV + Bills targets)")
 
             with col3:
                 st.markdown("**Total Breakdown**")
                 total_all = monthly_summary['Total Points'].sum()
-                qualified_all = final_summary['Final Payable Total'].sum()  # Includes "No Name"
-                payable_all = final_summary_display['Final Payable Total'].sum()  # Excludes "No Name"
-                no_name_all = qualified_all - payable_all
+                payable_all = final_summary_display['Final Payable Total'].sum()
 
-                st.metric("1️⃣ Total Accrued", f"₹{total_all:,.2f}")
-                st.metric("2️⃣ After Qualifier Logic", f"₹{qualified_all:,.2f}", delta=f"-₹{total_all - qualified_all:,.2f}")
-                st.metric('3️⃣ "No Name" PE (excluded)', f"₹{no_name_all:,.2f}", delta=f"-₹{no_name_all:,.2f}")
-                st.metric("✅ FINAL PAYABLE", f"₹{payable_all:,.2f}")
+                st.metric("1️⃣ Total Accrued", f"₹{total_all:,.2f}", help="Total points earned (excludes 'No Name' transactions which have 0 points)")
+                st.metric("✅ FINAL PAYABLE", f"₹{payable_all:,.2f}", delta=f"-₹{total_all - payable_all:,.2f}", help="After applying qualifier logic (AOV + Bills targets)")
 
             st.divider()
 
@@ -342,5 +330,5 @@ with st.sidebar:
     **Important:**
     - Both AOV and Bills targets must be met for payout
     - Furniture and Homeware are evaluated independently
-    - "No Name" entries are excluded from final payouts
+    - "No Name" transactions get 0 points (nobody gets paid)
     """)
